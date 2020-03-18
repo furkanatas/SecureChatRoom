@@ -5,6 +5,7 @@ from threading import Thread
 import time
 
 
+LOGIN_STATE = 1
 CHAT_ROOM_SELECT_STATE = 2 
 CHAT_STATE = 3
 
@@ -21,7 +22,7 @@ def accept_incoming_connections():
 def handle_client(client):  # Takes client socket as argument.
     """Handles a single client connection."""
     
-    
+    StepNum = 0
     name = client.recv(BUFSIZ).decode("utf8")
     
     ClientState = CHAT_ROOM_SELECT_STATE
@@ -36,7 +37,29 @@ def handle_client(client):  # Takes client socket as argument.
             broadcast(bytes("%s has left the chat." % name, "utf8"),"",ChatRoom)
             break
         else :
-            if(ClientState == CHAT_ROOM_SELECT_STATE):
+            if(ClientState == LOGIN_STATE):
+                if(StepNum == 0):
+                    #Receive ClientCertificate
+                    #Verify Certificate, Generate Nonce and encrypt with Client Public Key
+                    #Sends Server Certificate and Nonce encrypted with Client Public Key
+                    StepNum+=1
+                elif(StepNum == 1):
+                    #Receive Server Nonce Response, Client Nonce encrypted with Server Public Key
+                    #Check Server Nonce equality, Decrypt Client Nonce with Server Private Key
+                    #Sends Client Ticket encrypted with Client Public Key, and Client Nonce
+                    StepNum+=1
+                else:
+                    #There is an error
+                    pass
+            elif(ClientState == CHAT_ROOM_SELECT_STATE):
+                if(StepNum == 2 ):
+                    #Receives Client Ticket, timestamp, ChatroomName
+                    #Decrypt it with Server private key
+                    #Sends ChatRoom Key encrypted with Client Public Key
+                    StepNum+=1
+                else:
+                    #There is an error
+                    pass
                 ChatRoom = msg.decode("utf8")
                 welcome = 'Welcome %s in Chat Room : %s! If you ever want to quit, type {quit} to exit.' % (name,ChatRoom)
                 client.send(bytes(welcome, "utf8"))
@@ -47,6 +70,12 @@ def handle_client(client):  # Takes client socket as argument.
                 broadcast(bytes(msg, "utf8"),"",ChatRoom)
                 ClientState = CHAT_STATE
             elif ClientState == CHAT_STATE:
+                if(StepNum == 3):
+                    #Receives Client message encrypted with Chatroom key
+                    #Decrypt it with ChatRoom key
+                    #Calc checksum
+                    #Send Message and CheckSum with encrypted with Chat room Key
+                    StepNum+=1
                 broadcast(msg, name+": ",ChatRoom)
                 
             
@@ -72,6 +101,9 @@ ADDR = (HOST, PORT)
 
 SERVER = socket(AF_INET, SOCK_STREAM)
 SERVER.bind(ADDR)
+#Load Server Certificate
+#Load Server Private Key
+#Load Server Private Key
 
 if __name__ == "__main__":
     SERVER.listen(5)

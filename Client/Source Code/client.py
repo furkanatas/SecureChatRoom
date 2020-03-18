@@ -9,6 +9,8 @@ LOGIN_STATE = 1
 CHAT_ROOM_SELECT_STATE = 2
 CHAT_ROOM_STATE = 3
 
+
+
 ##Make global some gui value to pass into Client
 msg_list = None
 
@@ -28,8 +30,42 @@ class ChatClient:
 
         self.PageState =  CHAT_ROOM_STATE
         self.StateNum = 0
+        #self.clientCertificate = LoadClientCertificate()
+        #self.clientPrivateKey = LoadClientPrivateKey()
+
+
         self.connected = True
-        
+        self.clientPrivateKey = None
+        self.clientCertificate = None
+        self.serverCertificate = None 
+        self.serverPublicKey = None
+        self.chatRoomSymKey = None
+        self.clientNonce = None
+        self.clientTicket = None 
+
+    def connect():
+        pass
+    def LoadClientCertificate():
+        pass
+    def LoadClientPrivateKey():
+        pass
+    def sendCertificate():
+        pass
+    def generateNonce():
+        pass
+    def encryptMessageWithChatRoomKey():
+        pass
+    def decryptMessageWithChatRoomKey():
+        pass
+    def verifyServerNonce():
+        pass
+
+    def validatePassword(a,LoginPageFrame,cont):
+        #check hash of password 
+
+        #if true send certificate, and controller navigate page
+        #if false, PageFrame will show error
+        pass
     def receive(self):
         """Handles receiving of messages."""
         while self.connected:
@@ -37,18 +73,26 @@ class ChatClient:
                 msg = self.client_socket.recv(self.BUFSIZ).decode("utf8")
                 if(self.PageState == CHAT_ROOM_STATE):
                     global msg_list 
+                    #Decrypt message with ChatRoom Symetric Key, Check Checksum and insert
                     msg_list.insert(tkinter.END, msg)
                 elif(self.PageState == CHAT_ROOM_SELECT_STATE):
+                    if(self.StepNum==5):
+                        #Receive Chatroom key encrypted with Client Public Key
+                        #Decrypt it with Client Private Key, load it
+                        self.StepNum +=1
                     pass
                 elif(self.PageState == LOGIN_STATE):
-                    if(self.StepNum==0):
-                        Self.StepNum +=1
-                    elif(self.StepNum==1):
-                        Self.StepNum +=1
-                    elif(self.StepNum==2):
-                        Self.StepNum +=1
+                    if(self.StepNum==1):
+                        #Receive ServerCertificate, ServerNonce encrypted with Client Public key
+                        #Decrypt Server Nonce with Client Private Key , and check equality
+                        self.StepNum +=1
                     elif(self.StepNum==3):
-                        Self.StepNum +=1    
+                        #Receive Client Ticket encrypted eith Client Public Key, and ClientNonce sent before
+                        #Decrypt Ticket with Client Private Key, Check Nonce equality
+                        #Pass into CHAT_ROOM_SELECT_STATE
+                        self.StepNum +=1
+                    
+                    
                         
 
                 #msg_list.insert(tkinter.END, msg)
@@ -57,7 +101,7 @@ class ChatClient:
 
     def send_message_into_ChatRoom(self,my_msg, is_cancel= False):  # event is passed by binders.
         """Handles sending of messages."""
-        if(is_cancel):
+        if(is_cancel or my_msg.get =="{quit}"):
             self.client_socket.send(bytes("{quit}", "utf8"))
             global app
             global receive_thread
@@ -68,6 +112,24 @@ class ChatClient:
             receive_thread.join(1)
             
         else:
+            if(self.PageState == LOGIN_STATE):
+                if(self.StepNum==0):
+                    #Send ClientCertificate
+                    self.StepNum +=1
+                elif(self.StepNum==2):
+                    #Send Decrypted ServerNonce and Encrypted ClientNonce
+                    self.StepNum +=1    
+            elif(self.PageState == CHAT_ROOM_SELECT_STATE):
+                if(self.StepNum==4):
+                    #Send (ClientTicket, timestamp, ChatRoomName) encrypted with Server Public Key
+                    self.StepNum +=1   
+            elif(self.PageState == CHAT_ROOM_STATE):
+                if(self.StepNum==6):
+                    #Send Message encrypted with ChatRoom key
+                    pass
+                else:
+                    #There is an error
+                    pass
             msg = my_msg.get()
             print(msg)
             my_msg.set("")  # Clears input field.
@@ -131,6 +193,7 @@ class LoginPage(tkinter.Frame):
 
         #login button
         loginButton = tkinter.Button(self, text="Login", command=lambda a = username: [controller.show_frame("ChatRoomSelectPage"),ClientObject.send_message_into_ChatRoom(a)]).grid(row=4, column=0)  
+        #loginButton = tkinter.Button(self, text="Login", command=lambda a = username,cont = controller: [ClientObject.validatePassword(a,self,cont)]).grid(row=4, column=0)  
 
         
 
@@ -146,7 +209,7 @@ class ChatRoomSelectPage(tkinter.Frame):
 
         #Enter button
         EnterButton = tkinter.Button(self, text="Enter", command=lambda a = ChatRoomName: [controller.show_frame("ChatRoomPage"),ClientObject.send_message_into_ChatRoom(a)]).grid(row=4, column=0)
-
+        #EnterButton = tkinter.Button(self, text="Enter", command=lambda a = ChatRoomName, b=controller: [ClientObject.send_message_into_ChatRoom(a)]).grid(row=4, column=0)
 
 class ChatRoomPage(tkinter.Frame):
     def __init__(self, parent, controller):
