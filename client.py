@@ -48,10 +48,13 @@ class ChatClient:
         self.client_socket.connect(self.ADDR)
         self.connected = True
         pass
-    def LoadClientCertificate():
-        pass
+    def LoadClientCertificate(username):
+        file = open(username +"_cer.pem","r")
+        return file
+  
     def LoadClientPrivateKey():
         pass
+    #burada aslında password auth yapacak bir daha validate pass e gerek var mı
     def sendCertificate():
         pass
     def generateNonce():
