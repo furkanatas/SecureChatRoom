@@ -48,10 +48,14 @@ class ChatClient:
         self.client_socket.connect(self.ADDR)
         self.connected = True
         pass
-    def LoadClientCertificate():
-        pass
-    def LoadClientPrivateKey():
-        pass
+    def LoadClientCertificate(username):
+        file = open(username +"_cer.pem","r")
+        return file
+  
+    def LoadClientPrivateKey(username,password):
+        client_private_key = open(username+"private.pem", "rb").read()
+        return  private_key = RSA.import_key(client_private_key, passphrase=password)
+    #burada aslında password auth yapacak bir daha validate pass e gerek var mı
     def sendCertificate():
         pass
     def generateNonce():
@@ -62,6 +66,18 @@ class ChatClient:
         pass
     def verifyServerNonce():
         pass
+    
+    def Certification_Verify(username,server_public_key):
+
+        key = RSA.import_key(open('ca_public.pem').read(), passphrase="key_ca")
+        h = SHA256.new(server_public_key)
+        file = open(username + "_cer.pem", "r")
+
+        try:
+            pkcs1_15.new(key).verify(h, file)
+            return 1
+        except (ValueError, TypeError):
+            print("The certificate is not valid.")
 
     def validatePassword(self,username,password,LoginPageFrame,controller):
         #check hash of password     
